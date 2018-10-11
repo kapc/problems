@@ -1,0 +1,13 @@
+In requirements:
+
+- Efficiency at Scale
+- Low read latency
+- Read what you wrote consistency
+- High read availability.
+
+Read what you wrote consistency
+Stick users to one particular webserver and make sure all the information that user needs is available on that shard.
+
+What is SSL termination?
+What is NGINX behind ELB?
+

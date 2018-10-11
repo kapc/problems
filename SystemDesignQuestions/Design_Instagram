@@ -1,0 +1,37 @@
+Design Instagram:
+
+1. Requirements:
+- User should be able to signup/register.
+- Add/Remove friends
+- Upload photos/videos
+- Like, comment on videos.
+- Search based on tags or friends.
+# News feed of photos/videos.
+# Follow/unfollow other friends.
+
+
+2. Non-functional requirements:
+- System should be highly available.
+- Low latency as it will directly affect user experience.
+- Eventual consistency should be OK as it is fine for users to not see few photos for sometime.
+- Highly reliable, as it is ok to see stale info but data should never be lost.
+- Read/write. Very read heavy as on an average lot of people will view content more than they upload.
+
+3. Estimation:
+# I was very off, started with 500 M users/ 50 M daily active users/ 5 photos 1 videos each day/ 1 photo 1MB and 1
+# video 5 MB. Comes to 50TB for videos each day and 250TB of photos each day.
+From educative.io
+300 M total users
+1 M active users
+2 M photos every day, 23 new photos per seconds
+Avg photo size 200 KB
+Total space for 1 day of photos:
+    2 * 10^6 * 200 * 10^3 => 400GB each day
+    400 * 365 in 5 years => 800TB
+
+4. Highlevel Design:
+https://www.educative.io/collection/page/5668639101419520/5649050225344512/5673385510043648
+
+
+
+

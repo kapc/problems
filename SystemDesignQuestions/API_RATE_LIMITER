@@ -1,0 +1,109 @@
+API Rate limiter:
+
+Design API rate limiter:
+
+- Why rate limiter are used:
+    Basically to help protect from abusive behaviour of clients. A client might send million requests in a minute
+    that could bring the service down.
+    It could help with blocking second factor authentication, how many times user can retry failed authentication.
+    To support subscription based services, where your subscription might allows you certain number of API Calls.
+    Eliminates huge spikes in traffic.
+
+Requirements:
+    - Basically disallow each client to do more than certain number of API calls. - 15 requests / per second.
+    - Given user might access a highly scalable service running from multiple nodes, it should keep track of
+    API calls across the cluster and not only on a single cluster.
+
+Non-functional requirements:
+    - Rate limiting service should be highly available as it is protecting your main app from all kinds of
+    security issues and abuse.
+    - Service should be scalable to number of users using the APIs. As millions of users might be accessing
+    those APIs. Doing throttling based on each user will also needed scalable rate limiter.
+    - Rate limiter should not introduce significant latencies in the API calls themselves.
+
+Back of the envelop calculations:
+    - 100 million users
+    - 1000s of APIs
+    - 20 million active users
+    - Each user makes atleast 10 API calls
+    - 200 million API requests each day
+    - 200/3600 * 24 requests per second = 2000 request per second
+
+Types of throttling:
+
+Hard Throttling: The number of API requests cannot exceed the throttle limit.
+
+Soft Throttling: In this type, we can set the API request limit to exceed a certain percentage. For example,
+if we have rate-limit of 100 messages a minute and 10% exceed limit. Our rate limiter will allow up to 110 messages per minute.
+
+Elastic or Dynamic Throttling: Under Elastic throttling, the number of requests can go beyond the threshold if the system has some resources available.
+For example, if a user is allowed only 100 messages a minute, we can let the user send more than 100 messages a minute if there are free resources available in the system.
+High level design:
+
+Approach 1:
+    For each request, we first gather.
+        User_ID, IP Address, GPS location and other attributes.
+        last_time_stamp_min, last_time_stamp_hour, last_time_stamp_day
+        total_requests, request_since_last_min, request_since_last_hour, request_since_last_day
+Approach 2:
+    Keeping user request queues:
+        second queue - 15 slots
+        min queue - 60 slots
+        hour queue - 60 slots
+        As all request done within a second, 15 request, add it to the queue
+        As a second passes you reset second queue, and set that second slot in minute queue to cumulative number
+        Same with hour queue.
+Approach 3:
+    In case of low latency requirements:
+        We can have a background job doing the checking.
+        So clients request will only increment counters etc
+        Background job should decide when it will be blocked
+    If background job falls behind it will not do much to the requirements.
+
+Approach 4:
+
+We can shard based on the ‘UserID’ to distribute user’s data. For fault tolerance and replication we should use Consistent Hashing.
+If we want to have different throttling limits for different APIs, we can choose to shard per user per API.
+Take the example of URL Shortner, we can have different rate limiter for creatURL() and deleteUR() APIs for each user or IP.
+
+If our APIs are partitioned, a practical consideration could be to have a separate (somewhat smaller) rate limiter for each API shard as well.
+Let’s take the example of our URL Shortener, where we want to limit each user to not create more than 100 short URLs per hour.
+Assuming, we are using Hash-Based Partitioning for our creatURL() API, we can rate limit each partition to allow a user to create not more than three short URLs per minute,
+in addition to 100 short URLs per hour.
+
+Our system can get huge benefits from caching recent active users.
+Application servers before hitting backend servers can quickly check if the cache has the desired record.
+Our rate limiter can greatly benefit from the Write-back cache, by updating all counters and timestamps in cache only.
+The write to the permanent storage can be done at fixed intervals.
+This way we can ensure minimum latency added to the user’s requests by the rate limiter.
+The reads can always hit the cache first, this will be extremely useful once the user has hit their maximum limit and the rate limiter will only be reading data without any updates.
+
+Least Recently Used (LRU) can be a reasonable cache eviction policy for our system.
+
+12. Should we rate limit by IP or by user?
+Let’s discuss pros and cons of using each one of these schemes:
+
+IP: In this scheme, we throttle request per-IP, although it’s not really optimal in terms of differentiating between ‘good’ and ‘bad’ actors,
+it’s still better than not have rate limiting at all.
+The biggest problem with IP based throttling is when multiple users share a single public IP like in an internet cafe or smartphone users that are using the same gateway.
+One bad user can cause throttling to other users. Another issue could arise while caching IP-based limits,
+as there are a huge number of IPv6 addresses available to a hacker from even one computer, it’s trivial to make a server run out of memory tracking IPv6 addresses!
+
+User: Rate limiting can be done on APIs after user authentication.
+Once authenticated, the user will be provided with a token which the user will pass with each request.
+This will ensure that we will rate limit against a particular API that has a valid authentication token.
+But what if we have to rate limit on the login API itself? The weakness of this rate-limiting would be that a hacker can perform a denial of service attack against a user by entering wrong credentials up to the limit, after that the actual user will not be able to login.
+
+How about if we combine the above two schemes?
+
+Hybrid: A right approach could be to do both per-IP and per-user rate limiting, as they both have weaknesses when implemented alone.
+Though, this will result in more cache entries with more details per entry hence requiring more memory and storage.
+
+
+
+
+
+
+
+
+

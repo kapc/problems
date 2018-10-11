@@ -1,0 +1,41 @@
+1. Requiresments
+2. Nonfunctional requirements.
+3. Back estimation OK
+
+4. Defining APIs (too much detailed)
+5. High level design:
+    highlevel components fine.
+    few API workflows
+
+IMPROVEMENTS:
+
+Data Model part:
+Search - how search implementation is done
+Recommendations - how they are built.
+Scalable nodes how many nodes we need for APP and how many we need for RDBMS
+Could not discuss design tradeoffs.
+How caching is done?
+MySQl / NOSQL?
+
+- Ask clarification
+
+How do you scale MySQL horizontally?
+https://cloud.google.com/community/tutorials/horizontally-scale-mysql-database-backend-with-google-cloud-sql-and-proxysql
+    Sharding:
+    - key based sharding.. hotspots, uneven distribution.
+    - Hash based sharding.. even distribution but all data is scattered so join would be terrible.
+    - Consistent hashing.. Adding removing node should be ok and require minimum movement.
+
+    Master/Slave replication:
+    - All nodes can accept read.
+    - Only master accepts write, so write must need to propagate to all read replicas. Leading to
+    eventual consistency. So until writes are propagated user might not see same data from each
+    nodes.
+    - If user needs to read same data he wrote immediately or if there are strong consistency
+    requirements then master/replica approach is not good.
+
+How do you store huge number of images?
+    - Basically store all the metadata in mysql backends.
+    - Only store image locations in mysql.
+    - Actual images may be stored in some kind of NoSQL backend for easy retrieval.
+
